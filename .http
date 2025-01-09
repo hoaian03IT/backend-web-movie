@@ -1,0 +1,7 @@
+POST http://localhost:3001/auth/register HTTP/1.1
+content-type: application/json
+
+{
+    "email": "anmixmax03@gmail.com",
+    "password": "Hoaian.03"
+}

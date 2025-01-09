@@ -13,15 +13,4 @@ import { HttpExceptionFilter } from './http-exception';
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
-
-  @Get(':id')
-  async get(
-    @Param(
-      'id',
-      new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-    )
-    id: number,
-  ) {
-    console.log(id);
-  }
 }
