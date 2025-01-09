@@ -1,56 +1,73 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import * as jwt from 'jsonwebtoken';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
-  createTokens(user: UserDocument): {
+  async createTokens(user: UserDocument): Promise<{
     accessToken: string;
     refreshToken: string;
     refreshTokenExpiredInSeconds: number;
-  } {
-    const accessToken = AuthService.createAccessToken(user);
-    const { refreshToken, expiredInSeconds } =
-      AuthService.createRefreshToken(user);
+  }> {
+    const accessToken = this.createAccessToken(user);
+    const { refreshToken, expiredInMilliseconds } =
+      this.createRefreshToken(user);
+
+    await this.storeRefreshTokenOnCache(
+      user,
+      refreshToken,
+      expiredInMilliseconds,
+    );
 
     return {
       accessToken,
       refreshToken,
-      refreshTokenExpiredInSeconds: expiredInSeconds,
+      refreshTokenExpiredInSeconds: expiredInMilliseconds,
     };
   }
 
-  private static createAccessToken(user: UserDocument) {
-    const accessTokenSecret =
-      process.env.ACCESS_TOKEN_SECRET || 'access_secret';
+  private createAccessToken(user: UserDocument) {
+    const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
     const accessToken = jwt.sign(
       { id: user._id, isActive: user.is_active },
-      accessTokenSecret,
+      accessTokenSecret || 'access_secret',
       {
-        algorithm: 'RS256',
         expiresIn: 1000 * 60, // 60 seconds
       },
     );
     return accessToken;
   }
 
-  private static createRefreshToken(user: UserDocument) {
-    const refreshTokenSecret =
-      process.env.REFRESH_TOKEN_SECRET || 'refresh_secret';
-
-    const expiredInSeconds = 60 * 60 * 24 * 365; // 365 days in seconds
+  private createRefreshToken(user: UserDocument) {
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+    const expiredInMilliseconds = 1000 * 60 * 60 * 24 * 365; // 365 days in milliseconds
     const refreshToken = jwt.sign(
       { id: user._id, isActive: user.is_active },
-      refreshTokenSecret,
+      refreshTokenSecret || 'refresh_secret',
       {
-        algorithm: 'HS384',
-        expiresIn: expiredInSeconds * 1000, // 365 days in milliseconds
+        expiresIn: expiredInMilliseconds, // 365 days in milliseconds
       },
     );
-    return { refreshToken, expiredInSeconds };
+    return { refreshToken, expiredInMilliseconds };
+  }
+
+  private async storeRefreshTokenOnCache(
+    user: UserDocument,
+    refreshToken: string,
+    ttl: number,
+  ) {
+    await this.cacheManager.set(
+      `refreshtoken:${user._id}:${refreshToken}`,
+      1,
+      ttl,
+    );
   }
 }
