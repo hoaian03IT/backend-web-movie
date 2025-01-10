@@ -8,6 +8,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './users/users.module';
 import { CacheModule, CacheStore } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
@@ -27,6 +28,24 @@ import { redisStore } from 'cache-manager-redis-yet';
 
         return {
           store: store as unknown as CacheStore,
+        };
+      },
+    }),
+    MailerModule.forRootAsync({
+      useFactory: async () => {
+        return {
+          transport: {
+            host: 'smtp.gmail.com', // Replace with your provider's SMTP host
+            port: 465, // Change to 587 if needed
+            secure: true, // Use true for 465, false for 587
+            auth: {
+              user: process.env.NODEMAILER_USER,
+              pass: process.env.NODEMAILER_PASSWORD,
+            },
+          },
+          defaults: {
+            from: `"No reply - IMDb" <${process.env.NODEMAILER_USER}>`,
+          },
         };
       },
     }),
