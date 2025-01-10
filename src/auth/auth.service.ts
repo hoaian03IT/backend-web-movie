@@ -12,6 +12,7 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { TokenPayloadDTO } from './dto/token-payload.dto';
 
 @Injectable()
 export class AuthService {
@@ -170,5 +171,50 @@ export class AuthService {
 
     // Remove the refresh token from cache when it's expired
     await this.cacheManager.del(`refreshtoken:${userId}:${refreshToken}`);
+  }
+
+  async refreshToken(currentRefreshToken: string) {
+    const refreshTokenSecret =
+      process.env.REFRESH_TOKEN_SECRET || 'refresh_token';
+
+    // decode the refresh token
+    const payload: TokenPayloadDTO = await this.jwtService.verifyAsync(
+      currentRefreshToken,
+      {
+        secret: refreshTokenSecret,
+      },
+    );
+    if (!payload) throw new ForbiddenException();
+
+    // get refresh token with id
+    let result = await this.cacheManager.get(
+      `refreshtoken:${payload.sub}:${currentRefreshToken}`,
+    );
+    if (!result) throw new ForbiddenException('Invalid refresh token');
+
+    // to optimize, store user information on cache, update cache when user update information
+    const user = (await this.userModel.findById(payload.sub)) as UserDocument;
+
+    // create tokens
+    const { refreshToken, expiredInMilliseconds } =
+      this.createRefreshToken(user);
+
+    const accessToken = this.createAccessToken(user);
+
+    // clear old refresh token before store new refresh token
+    this.clearRefreshTokenOnCache(currentRefreshToken, user._id.toString());
+
+    // store tokens
+    await this.storeRefreshTokenOnCache(
+      user,
+      refreshToken,
+      expiredInMilliseconds,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      refreshTokenExpiredInSeconds: expiredInMilliseconds,
+    };
   }
 }

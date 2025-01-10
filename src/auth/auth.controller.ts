@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   Req,
   Res,
@@ -16,7 +17,7 @@ import { OtpDto } from './dto/otp.dto';
 import { ResendOtpDto } from './dto/resendOtp.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from './auth.guard';
-import { UserDocument } from 'src/schemas/user.schema';
+import { TokenPayloadDTO } from './dto/token-payload.dto';
 
 @UseFilters(new HttpExceptionFilter())
 @Controller('auth')
@@ -120,15 +121,28 @@ export class AuthController {
   async logout(@Req() req: any, @Res() res: Response): Promise<void> {
     const refreshToken = req.cookies['refreshToken'];
 
-    const user = req.user as {
-      sub: string;
-      isVerified: boolean;
-      isActive: boolean;
-    };
+    const user = req.user as TokenPayloadDTO;
 
     // delete refresh token from cache
     await this.authService.clearRefreshTokenOnCache(refreshToken, user.sub);
 
+    // clear cookies from client
     res.clearCookie('refreshToken').json({ message: 'Login successfully' });
+  }
+
+  @Get('refresh-token')
+  async refreshToken(@Req() req: Request, @Res() res: Response) {
+    const { accessToken, refreshToken, refreshTokenExpiredInSeconds } =
+      await this.authService.refreshToken(req.cookies['refreshToken'] || '');
+
+    res
+      .cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        maxAge: refreshTokenExpiredInSeconds,
+      })
+      .json({
+        message: 'Refresh token successfully',
+        token: accessToken,
+      });
   }
 }
