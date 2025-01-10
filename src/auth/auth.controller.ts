@@ -1,21 +1,11 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Inject,
-  InternalServerErrorException,
-  NotFoundException,
-  Post,
-  Res,
-  UseFilters,
-} from '@nestjs/common';
+import { Body, Controller, Post, Res, UseFilters } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { HttpExceptionFilter } from 'src/http-exception';
-import { User, UserDocument } from 'src/schemas/user.schema';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UsersService } from 'src/users/users.service';
 import { Response } from 'express';
-import { OtpDto } from './dto/opt.dto';
+import { OtpDto } from './dto/otp.dto';
+import { ResendOtpDto } from './dto/resendOtp.dto';
 
 @UseFilters(new HttpExceptionFilter())
 @Controller('auth')
@@ -30,14 +20,13 @@ export class AuthController {
     // create a new user with verified status is false
     const newUser = await this.userService.createNewUser(body);
 
-    // create OPT
+    // create OTP
     const otp = await this.authService.createOTPVerification(
       newUser._id.toString(),
     );
 
     // send OTP via email
-    if (otp) await this.authService.sendOTPViaEmail(newUser.email, otp);
-    else throw new InternalServerErrorException();
+    await this.authService.sendOTPViaEmail(newUser.email, otp);
 
     return newUser._id.toString();
   }
@@ -50,18 +39,9 @@ export class AuthController {
     const { userId, otp } = body;
     const valid = await this.authService.verifyOTP(userId, Number(otp));
 
-    // throw error if OTP is invalid or expired
-    if (!valid) {
-      throw new BadRequestException('Invalid OTP or expired OTP');
-    }
-
     // update user's is_verified status to true
     const user = await this.userService.updateVerifiedStatus(userId, valid);
 
-    // throw new BadRequestException if user does not exist after updating
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
     // create tokens for client session
     const { accessToken, refreshToken, refreshTokenExpiredInSeconds } =
       await this.authService.createTokens(user);
@@ -80,5 +60,20 @@ export class AuthController {
           name: user.name,
         },
       });
+  }
+
+  @Post('registration-resend-otp')
+  async resendRegistrationOTP(@Body() body: ResendOtpDto): Promise<string> {
+    const user = await this.userService.findUserUnVerifiedById(body.userId);
+
+    // create OTP
+    const otp = await this.authService.createOTPVerification(
+      user._id.toString(),
+    );
+
+    // sent OTP
+    await this.authService.sendOTPViaEmail(user.email, otp);
+
+    return 'Resend successfully';
   }
 }

@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
@@ -10,6 +16,7 @@ const saltRounds = 10;
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
   async createNewUser(body: CreateUserDto): Promise<UserDocument> {
     const existedUser = await this.userModel.exists({ email: body.email });
 
@@ -31,10 +38,25 @@ export class UsersService {
   async updateVerifiedStatus(
     userId: string,
     verifiedStatus: boolean,
-  ): Promise<UserDocument | null> {
+  ): Promise<UserDocument> {
     const user = await this.userModel.findByIdAndUpdate(userId, {
       is_verified: verifiedStatus,
     });
+
+    // throw user not found exception
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async findUserUnVerifiedById(userId: string): Promise<UserDocument> {
+    const user = await this.userModel.findOneAndUpdate({
+      _id: userId,
+      is_verified: false,
+    });
+    if (!user) throw new NotFoundException('User not found');
     return user;
   }
 }

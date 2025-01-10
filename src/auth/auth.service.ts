@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
@@ -76,20 +81,13 @@ export class AuthService {
     );
   }
 
-  async createOTPVerification(userId: string): Promise<number | null> {
+  async createOTPVerification(userId: string): Promise<number> {
     // Generate a random 6-digit number
     const otp = Math.floor(100000 + Math.random() * 900000);
     // Store the OTP in a cache with a TTL of 5 minutes
-    try {
-      console.log(`otp:${userId}`);
 
-      await this.cacheManager.set(`otp_verify_${userId}`, otp, 1000 * 60 * 5);
-      console.log(otp);
-      return otp;
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
+    await this.cacheManager.set(`otp:verify:${userId}`, otp, 1000 * 60 * 5);
+    return otp;
   }
 
   async sendOTPViaEmail(userEmail: string, otp: number): Promise<void> {
@@ -99,7 +97,8 @@ export class AuthService {
         to: userEmail,
         subject: 'IMDb - OTP Verification',
         text: `You need to verify your OTP to register your account. Your OTP is: ${otp}`,
-        html: `<p>You need to verify your OTP to register your account.</p><p><strong>Your OTP is: ${otp}</strong></p>`,
+        html: `<p>You need to verify your OTP to register your account.</p><p><strong>Your OTP is: ${otp}</strong></p>
+               <p>This OTP code is expired in 5 minutes</p>`,
       });
 
       console.log('OTP email sent successfully:', info.messageId);
@@ -112,7 +111,11 @@ export class AuthService {
   }
 
   async verifyOTP(userId: string, otp: number): Promise<boolean> {
-    const result = await this.cacheManager.get(`otp:${userId}`);
-    return result === otp;
+    const result = await this.cacheManager.get(`otp:verify:${userId}`);
+    if (result !== otp) {
+      throw new BadRequestException('Invalid OTP or OTP is expired');
+    }
+    await this.cacheManager.del(`otp:verify:${userId}`);
+    return true;
   }
 }

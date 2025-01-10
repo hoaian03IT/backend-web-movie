@@ -5,3 +5,22 @@ content-type: application/json
     "email": "anmixmax03@gmail.com",
     "password": "Hoaian.03"
 }
+
+###
+POST http://localhost:3001/auth/registration-verify HTTP/1.1
+content-type: application/json
+
+{
+    "userId": "67809774a3fc0357f7d5fe8c",
+    "otp": "923716"
+}
+
+
+###
+POST http://localhost:3001/auth/registration-resend-otp HTTP/1.1
+content-type: application/json
+
+{
+    "userId": "67809774a3fc0357f7d5fe8c"
+}
+
