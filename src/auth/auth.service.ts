@@ -55,7 +55,7 @@ export class AuthService {
       },
       {
         secret: accessTokenSecret || 'access_secret',
-        expiresIn: 1000 * 60 * 5, // 5 minutes
+        expiresIn: 60 * 5, // 5 minutes
       },
     );
     return accessToken;

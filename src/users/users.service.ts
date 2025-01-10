@@ -24,10 +24,14 @@ export class UsersService {
   ) {}
 
   async createNewUser(body: CreateUserDto): Promise<UserDocument> {
-    const existedUser = await this.userModel.exists({ email: body.email });
+    // if the user is existed but was not verified
+    const existedUser = await this.userModel.findOne({
+      email: body.email,
+      is_verified: false,
+    });
 
     if (existedUser) {
-      throw new HttpException('User already exists', HttpStatus.BAD_REQUEST);
+      return existedUser;
     }
 
     // hash password
