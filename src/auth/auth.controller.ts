@@ -6,6 +6,7 @@ import { UsersService } from 'src/users/users.service';
 import { Response } from 'express';
 import { OtpDto } from './dto/otp.dto';
 import { ResendOtpDto } from './dto/resendOtp.dto';
+import { LoginDto } from './dto/login.dto';
 
 @UseFilters(new HttpExceptionFilter())
 @Controller('auth')
@@ -75,5 +76,32 @@ export class AuthController {
     await this.authService.sendOTPViaEmail(user.email, otp);
 
     return 'Resend successfully';
+  }
+
+  @Post('login')
+  async login(@Body() body: LoginDto, @Res() res: Response): Promise<void> {
+    const user = await this.authService.verifyLoginUser(
+      body.email,
+      body.password,
+    );
+
+    // create tokens for client session
+    const { accessToken, refreshToken, refreshTokenExpiredInSeconds } =
+      await this.authService.createTokens(user);
+
+    // send success response with tokens
+    res
+      .cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        maxAge: refreshTokenExpiredInSeconds,
+      })
+      .json({
+        message: 'Login successfully',
+        token: accessToken,
+        userInfo: {
+          email: user.email,
+          name: user.name,
+        },
+      });
   }
 }

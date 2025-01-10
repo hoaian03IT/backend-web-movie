@@ -1,17 +1,17 @@
 import {
-  IsBoolean,
   IsEmail,
   IsNotEmpty,
-  IsOptional,
   Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
 
-export class CreateUserDto {
-  @IsEmail({}, { message: 'Invalid email address' })
-  readonly email: string;
+export class LoginDto {
+  @IsNotEmpty({ message: 'Email is required' })
+  @IsEmail({}, { message: 'Email is invalid' })
+  email: string;
 
+  @IsNotEmpty({ message: 'Password is required' })
   @MinLength(8, { message: 'Password is at least 8 characters' })
   @MaxLength(64, { message: 'Password is at most 64 characters' })
   @Matches(
@@ -21,9 +21,5 @@ export class CreateUserDto {
         'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character (!@#_&.).',
     },
   )
-  readonly password: string;
-
-  @IsOptional()
-  @IsBoolean({ message: 'Status account must be boolean' })
-  readonly isActive: boolean;
+  password: string;
 }

@@ -59,4 +59,16 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
+
+  async findUserByEmail(
+    email: string,
+    verified: boolean = true,
+  ): Promise<UserDocument> {
+    const user = await this.userModel.findOneAndUpdate({
+      email: email,
+      is_verified: verified,
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
 }

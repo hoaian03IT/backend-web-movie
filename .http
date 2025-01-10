@@ -1,3 +1,4 @@
+### register
 POST http://localhost:3001/auth/register HTTP/1.1
 content-type: application/json
 
@@ -6,7 +7,7 @@ content-type: application/json
     "password": "Hoaian.03"
 }
 
-###
+### registration verify
 POST http://localhost:3001/auth/registration-verify HTTP/1.1
 content-type: application/json
 
@@ -16,7 +17,7 @@ content-type: application/json
 }
 
 
-###
+### registration resent OTP
 POST http://localhost:3001/auth/registration-resend-otp HTTP/1.1
 content-type: application/json
 
@@ -24,3 +25,11 @@ content-type: application/json
     "userId": "67809774a3fc0357f7d5fe8c"
 }
 
+### login
+POST http://localhost:3001/auth/login HTTP/1.1
+content-type: application/json
+
+{
+    "email": "anmixmax03@gmail.com",
+    "password": "Hoaian.03"
+}

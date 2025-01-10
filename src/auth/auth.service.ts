@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -10,6 +11,7 @@ import { User, UserDocument } from 'src/schemas/user.schema';
 import * as jwt from 'jsonwebtoken';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { MailerService } from '@nestjs-modules/mailer';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -117,5 +119,33 @@ export class AuthService {
     }
     await this.cacheManager.del(`otp:verify:${userId}`);
     return true;
+  }
+
+  async verifyLoginUser(
+    email: string,
+    password: string,
+  ): Promise<UserDocument> {
+    const user = await this.userModel.findOne({
+      email: email,
+      is_active: true,
+      is_verified: true,
+    });
+
+    // throw errors
+    if (!user) {
+      throw new NotFoundException('User not found');
+    } else if (!user.is_active) {
+      throw new ForbiddenException('User was disabled');
+    } else if (!user.is_verified) {
+      throw new ForbiddenException('User was not verified');
+    }
+
+    // compare passwords
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new BadRequestException('Invalid email or password');
+    }
+
+    return user;
   }
 }
