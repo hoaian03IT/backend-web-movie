@@ -8,10 +8,10 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
-import * as jwt from 'jsonwebtoken';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +19,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<User>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly mailerService: MailerService,
+    private jwtService: JwtService,
   ) {}
 
   async createTokens(user: UserDocument): Promise<{
@@ -45,11 +46,15 @@ export class AuthService {
 
   private createAccessToken(user: UserDocument): string {
     const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
-    const accessToken = jwt.sign(
-      { id: user._id, isActive: user.is_active, isVerified: user.is_verified },
-      accessTokenSecret || 'access_secret',
+    const accessToken = this.jwtService.sign(
       {
-        expiresIn: 1000 * 60, // 60 seconds
+        sub: user._id.toString(),
+        isActive: user.is_active,
+        isVerified: user.is_verified,
+      },
+      {
+        secret: accessTokenSecret || 'access_secret',
+        expiresIn: 1000 * 60 * 5, // 5 minutes
       },
     );
     return accessToken;
@@ -61,10 +66,14 @@ export class AuthService {
   } {
     const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
     const expiredInMilliseconds = 1000 * 60 * 60 * 24 * 365; // 365 days in milliseconds
-    const refreshToken = jwt.sign(
-      { id: user._id, isActive: user.is_active, isVerified: user.is_verified },
-      refreshTokenSecret || 'refresh_secret',
+    const refreshToken = this.jwtService.sign(
       {
+        sub: user._id.toString(),
+        isActive: user.is_active,
+        isVerified: user.is_verified,
+      },
+      {
+        secret: refreshTokenSecret || 'refresh_secret',
         expiresIn: expiredInMilliseconds, // 365 days in milliseconds
       },
     );
@@ -147,5 +156,19 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async clearRefreshTokenOnCache(
+    refreshToken: string,
+    userId: string,
+  ): Promise<void> {
+    let result = await this.cacheManager.get(
+      `refreshtoken:${userId}:${refreshToken}`,
+    );
+
+    if (!result) throw new ForbiddenException('Invalid refresh token');
+
+    // Remove the refresh token from cache when it's expired
+    await this.cacheManager.del(`refreshtoken:${userId}:${refreshToken}`);
   }
 }

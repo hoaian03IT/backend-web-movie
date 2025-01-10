@@ -1,12 +1,22 @@
-import { Body, Controller, Post, Res, UseFilters } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseFilters,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { HttpExceptionFilter } from 'src/http-exception';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UsersService } from 'src/users/users.service';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { OtpDto } from './dto/otp.dto';
 import { ResendOtpDto } from './dto/resendOtp.dto';
 import { LoginDto } from './dto/login.dto';
+import { AuthGuard } from './auth.guard';
+import { UserDocument } from 'src/schemas/user.schema';
 
 @UseFilters(new HttpExceptionFilter())
 @Controller('auth')
@@ -103,5 +113,22 @@ export class AuthController {
           name: user.name,
         },
       });
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('logout')
+  async logout(@Req() req: any, @Res() res: Response): Promise<void> {
+    const refreshToken = req.cookies['refreshToken'];
+
+    const user = req.user as {
+      sub: string;
+      isVerified: boolean;
+      isActive: boolean;
+    };
+
+    // delete refresh token from cache
+    await this.authService.clearRefreshTokenOnCache(refreshToken, user.sub);
+
+    res.clearCookie('refreshToken').json({ message: 'Login successfully' });
   }
 }

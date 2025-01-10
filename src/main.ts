@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import * as compression from 'compression';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { ValidationPipe } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const corsConfig: CorsOptions = {
@@ -38,6 +39,9 @@ async function bootstrap() {
 
   // compress response
   app.use(compression());
+
+  // cookie parser
+  app.use(cookieParser());
 
   const port = process.env.PORT || 3002;
   await app.listen(port);
