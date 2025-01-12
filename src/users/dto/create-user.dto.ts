@@ -9,6 +9,13 @@ import {
 } from 'class-validator';
 
 export class CreateUserDto {
+  @IsNotEmpty({ message: 'Name must be required' })
+  @Matches(
+    /^[a-zA-ZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžæÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽ∂ð ,.'-]+$/u,
+    { message: 'Name must be valid' },
+  )
+  readonly name: string;
+
   @IsEmail({}, { message: 'Invalid email address' })
   readonly email: string;
 

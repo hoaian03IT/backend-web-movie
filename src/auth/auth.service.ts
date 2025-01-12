@@ -143,7 +143,7 @@ export class AuthService {
 
     // throw errors
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new BadRequestException('Invalid email or password');
     } else if (!user.is_active) {
       throw new ForbiddenException('User was disabled');
     } else if (!user.is_verified) {

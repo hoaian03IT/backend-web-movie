@@ -12,8 +12,8 @@ POST http://localhost:3001/auth/registration-verify HTTP/1.1
 content-type: application/json
 
 {
-    "userId": "67809774a3fc0357f7d5fe8c",
-    "otp": "923716"
+    "userId": "678082f61b7fd10c06e85b8d",
+    "otp": "802941"
 }
 
 
@@ -22,7 +22,7 @@ POST http://localhost:3001/auth/registration-resend-otp HTTP/1.1
 content-type: application/json
 
 {
-    "userId": "67809774a3fc0357f7d5fe8c"
+    "userId": "678082f61b7fd10c06e85b8d"
 }
 
 ### login
@@ -33,3 +33,8 @@ content-type: application/json
     "email": "anmixmax03@gmail.com",
     "password": "Hoaian.03"
 }
+
+### get user information
+GET http://localhost:3001/users/info HTTP/1.1
+content-type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NzgwODJmNjFiN2ZkMTBjMDZlODViOGQiLCJpc0FjdGl2ZSI6dHJ1ZSwiaXNWZXJpZmllZCI6dHJ1ZSwiaWF0IjoxNzM2NTI3NzI1LCJleHAiOjE3MzY4Mjc3MjV9.HIv-SEEs0xFHDVGKVqXJXtTK8ecTMQM22puPH42leao

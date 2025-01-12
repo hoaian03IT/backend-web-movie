@@ -25,10 +25,13 @@ export class UsersService {
 
   async createNewUser(body: CreateUserDto): Promise<UserDocument> {
     // if the user is existed but was not verified
-    const existedUser = await this.userModel.findOne({
-      email: body.email,
-      is_verified: false,
-    });
+    const existedUser = await this.userModel.findOneAndUpdate(
+      {
+        email: body.email,
+        is_verified: false,
+      },
+      { name: body.name },
+    );
 
     if (existedUser) {
       return existedUser;
@@ -73,7 +76,7 @@ export class UsersService {
   }
 
   async findUserUnVerifiedById(userId: string): Promise<UserDocument> {
-    const user = await this.userModel.findOneAndUpdate({
+    const user = await this.userModel.findOne({
       _id: userId,
       is_verified: false,
     });

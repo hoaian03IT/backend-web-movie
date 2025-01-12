@@ -7,7 +7,7 @@ import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const corsConfig: CorsOptions = {
-    origin: '*',
+    origin: 'http://localhost:3000',
     credentials: true,
     allowedHeaders: [
       'Origin',
