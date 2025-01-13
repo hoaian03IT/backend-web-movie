@@ -18,6 +18,8 @@ import { ResendOtpDto } from './dto/resendOtp.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from './auth.guard';
 import { TokenPayloadDTO } from './dto/token-payload.dto';
+import { OTPForgotPasswordDTO } from './dto/otp-forgot-password.dto';
+import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 
 @UseFilters(new HttpExceptionFilter())
 @Controller('auth')
@@ -35,6 +37,7 @@ export class AuthController {
     // create OTP
     const otp = await this.authService.createOTPVerification(
       newUser._id.toString(),
+      'user-register:otp',
     );
 
     // send OTP via email
@@ -49,7 +52,11 @@ export class AuthController {
     @Res() res: Response,
   ): Promise<void> {
     const { userId, otp } = body;
-    const valid = await this.authService.verifyOTP(userId, Number(otp));
+    const valid = await this.authService.verifyOTP(
+      userId,
+      Number(otp),
+      'user-register:otp',
+    );
 
     // update user's is_verified status to true
     const user = await this.userService.updateVerifiedStatus(userId, valid);
@@ -81,6 +88,7 @@ export class AuthController {
     // create OTP
     const otp = await this.authService.createOTPVerification(
       user._id.toString(),
+      'user-register:otp',
     );
 
     // sent OTP
@@ -144,5 +152,35 @@ export class AuthController {
         message: 'Refresh token successfully',
         token: accessToken,
       });
+  }
+
+  @Post('otp-forgot-password')
+  async OTPForgotPassword(
+    @Body() body: OTPForgotPasswordDTO,
+  ): Promise<{ message: string }> {
+    // create otp
+    const otp = await this.authService.createOTPVerification(
+      body.email,
+      'user-forgot-password:otp',
+    );
+
+    // send OTP via email
+    await this.authService.sendOTPViaEmail(body.email, otp);
+
+    return { message: 'Sent email successfully' };
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: ForgotPasswordDTO) {
+    await this.authService.verifyOTP(
+      body.email,
+      body.otp,
+      'user-forgot-password:otp',
+    );
+
+    // update user's password
+    await this.userService.updatePassword(body.email, undefined, body.password);
+
+    return { message: 'Password updated successfully' };
   }
 }

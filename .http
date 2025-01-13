@@ -30,11 +30,30 @@ POST http://localhost:3001/auth/login HTTP/1.1
 content-type: application/json
 
 {
-    "email": "anmixmax03@gmail.com",
-    "password": "Hoaian.03"
+    "email": "dangtranhoaian8603@gmail.com",
+    "password": "DangAn#@03"
 }
 
 ### get user information
 GET http://localhost:3001/users/info HTTP/1.1
 content-type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NzgwODJmNjFiN2ZkMTBjMDZlODViOGQiLCJpc0FjdGl2ZSI6dHJ1ZSwiaXNWZXJpZmllZCI6dHJ1ZSwiaWF0IjoxNzM2NTI3NzI1LCJleHAiOjE3MzY4Mjc3MjV9.HIv-SEEs0xFHDVGKVqXJXtTK8ecTMQM22puPH42leao
+
+
+### forgot password
+POST http://localhost:3001/auth/otp-forgot-password HTTP/1.1
+content-type: application/json
+
+{
+    "email": "dangtranhoaian8603@gmail.com"
+}
+
+###
+POST http://localhost:3001/auth/forgot-password HTTP/1.1
+content-type: application/json
+
+{
+    "email": "dangtranhoaian8603@gmail.com",
+    "otp": "991510",
+    "password": "DangAn#@03"
+}

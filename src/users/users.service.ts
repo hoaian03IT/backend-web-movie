@@ -1,7 +1,5 @@
 import {
   ForbiddenException,
-  HttpException,
-  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
@@ -41,6 +39,7 @@ export class UsersService {
     const hashedPassword = await bcrypt.hash(body.password, saltRounds);
 
     const user = new this.userModel({
+      name: body.name,
       email: body.email,
       password: hashedPassword,
       is_active: body.isActive,
@@ -125,5 +124,34 @@ export class UsersService {
       throw new ForbiddenException('User was not verified');
 
     return user;
+  }
+
+  async updatePassword(
+    email: string | undefined,
+    userId: string | undefined,
+    newPassword: string,
+  ): Promise<void> {
+    // hash password
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    let user;
+
+    if (email) {
+      // update password in the database
+      user = await this.userModel.findOneAndUpdate(
+        { email: email },
+        {
+          password: hashedPassword,
+        },
+      );
+    } else if (userId) {
+      // update password in the database
+      user = await this.userModel.findByIdAndUpdate(userId, {
+        password: hashedPassword,
+      });
+    }
+
+    // throw user not found exception
+    if (!user) throw new NotFoundException('User not found');
   }
 }

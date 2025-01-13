@@ -93,12 +93,15 @@ export class AuthService {
     );
   }
 
-  async createOTPVerification(userId: string): Promise<number> {
+  async createOTPVerification(
+    unique: string,
+    keyCache: string,
+  ): Promise<number> {
     // Generate a random 6-digit number
     const otp = Math.floor(100000 + Math.random() * 900000);
-    // Store the OTP in a cache with a TTL of 5 minutes
 
-    await this.cacheManager.set(`otp:verify:${userId}`, otp, 1000 * 60 * 5);
+    // Store the OTP in a cache with a TTL of 5 minutes
+    await this.cacheManager.set(`${keyCache}:${unique}`, otp, 1000 * 60 * 5);
     return otp;
   }
 
@@ -122,12 +125,17 @@ export class AuthService {
     }
   }
 
-  async verifyOTP(userId: string, otp: number): Promise<boolean> {
-    const result = await this.cacheManager.get(`otp:verify:${userId}`);
-    if (result !== otp) {
+  async verifyOTP(
+    unique: string,
+    otp: number,
+    keyCache: string,
+  ): Promise<boolean> {
+    const result = await this.cacheManager.get(`${keyCache}:${unique}`);
+    console.log({ key: `${keyCache}:${unique}`, otp, result });
+    if (Number(result) !== Number(otp)) {
       throw new BadRequestException('Invalid OTP or OTP is expired');
     }
-    await this.cacheManager.del(`otp:verify:${userId}`);
+    await this.cacheManager.del(`${keyCache}:${unique}`);
     return true;
   }
 
@@ -216,5 +224,25 @@ export class AuthService {
       refreshToken,
       refreshTokenExpiredInSeconds: expiredInMilliseconds,
     };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.userModel.findOne({ email: email });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Generate a random 8-digit password
+    const otp = Math.floor(100000 + Math.random() * 999999);
+    const info = await this.mailerService.sendMail({
+      to: email,
+      subject: 'IMDb - OTP Verification',
+      text: `You need to verify your OTP to reset your account's password. Your OTP is: ${otp}`,
+      html: `<p>You need to verify your OTP to reset your account's password.</p><p><strong>Your OTP is: ${otp}</strong></p>
+             <p>This OTP code is expired in 5 minutes</p>`,
+    });
+
+    // Send the new password via email to the user's registered email address
   }
 }
